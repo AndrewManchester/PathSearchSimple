@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html>
+<style>
+
+
+#grid, #resgrid {
+        display: grid;
+        grid-template-columns: repeat(8, 30px);
+ }
+
+.grid-item {
+      border: 1px solid black;
+      font-size: 10px;
+      height: 30px;
+}
+.grid-bigtext {
+      border: 1px solid black;
+      font-size: 10px;
+      height: 30px;
+}
+
+.box {
+  display: inline-block;
+  margin-left: 5px;
+  width: 20px;
+  height: 20px
+}
+.north {
+   border-top: 2px solid black;
+}
+.east {
+   border-right: 2px solid black;
+}
+.south {
+   border-bottom: 2px solid black;
+}
+.west {
+   border-left: 2px solid black;
+}
+
+.set-red {
+   background-color: red;
+}
+
+.set-yellow {
+   background-color: yellow;
+}
+.set-green {
+   background-color: green;
+}
+.set-black {
+   background-color: grey;
+}
+</style>
+
+
+<script>
+"use strict" 
+ 
+const START = "start"
+const STOP = "stop"
+const BLOCK = "block"
+
+//When changing rows and cols you also need to change a 
+//CSS line with the new cols value
+//grid-template-columns: repeat( **cols**, 30px);
+const rows = 8
+const cols = 8
+
+
+const BLOCKED = -999
+
+let blockedPoints = []
+let gridId 
+let gridItems 
+let resGridId
+let DATA = []
+let currentActions
+
+class Point {
+  constructor (x, y ) {
+    this._x = x
+    this._y = y
+  }
+  
+  isDifferent(x,y) {
+    //console.log(`is different ${x} ${y}     ${this._x} ${this._y}`)
+    return (this._x !== x || this._y !== y) ? true : false
+  }
+ 
+  isSame(x,y) {
+    //console.log(`is different ${x} ${y}     ${this._x} ${this._y}`)
+    return !this.isDifferent(x,y)
+  }
+ 
+  get x() {
+    return parseInt(this._x)
+  }
+  set x(x) {
+     this._x = x
+  }
+  get y() {
+    return parseInt(this._y)
+  }
+  set y(y) {
+     this._y = y
+  }
+}
+
+let startPoint = new Point(0,0)
+let stopPoint = new Point(cols-1,rows-1)
+
+  
+const executeActions = () => {
+  //console.log("here c      vvvv")
+  Object.keys(currentActions).forEach(function(k, i) {
+          currentActions[k]()} ) 
+}
+          
+              
+const radioClick = (state) => {
+  switch (state) {
+   case START: {
+      currentActions = start
+      executeActions()
+      break
+    }
+    case STOP: {
+      currentActions = stop
+      executeActions()
+      break
+    }
+    case BLOCK: {
+      currentActions = block
+      executeActions()
+      break
+    }
+    
+   default: {
+     console.log("Should not be here") 
+   }
+    
+  }
+}
+
+const paths = [{direction: "NORTH", xOffset:  0,  yOffset: -1},
+               {direction: "EAST",  xOffset:  1,  yOffset:  0},
+               {direction: "SOUTH", xOffset:  0,  yOffset:  1},
+               {direction: "WEST",  xOffset: -1,  yOffset:  0} ]
+
+
+const assignNumberToCells = () => {
+  let nextNumber = [{present: 0, x: startPoint.x, y: startPoint.y}] 
+  DATA = Array(rows).fill().map( () => Array(cols).fill().map(() =>
+                   { return {value: -1}}))
+  blockedPoints.forEach( aPoint => {
+     const { x,y } = aPoint
+     DATA[y][x].value = BLOCKED
+  })
+  let present = 0
+  DATA[startPoint.y][startPoint.x].value = present
+  let endPointReached = false
+
+  while (nextNumber.length > 0 && endPointReached === false ) {
+    const temp = nextNumber.shift()
+    let {x, y} = temp
+    for( var aPath of paths) {
+      const { direction,xOffset, yOffset } = aPath
+      const newY = y+yOffset 
+      const newX = x+xOffset
+
+      if ( newY >= 0 && newY < rows && 
+           newX >= 0 && newX < cols &&
+           DATA[newY][newX].value !== BLOCKED &&
+           DATA[newY][newX].value === -1) {
+        present = present + 1
+        nextNumber.push({present: present, x: newX, y: newY})
+        DATA[newY][newX].value = present
+        if (stopPoint.isSame(newX,newY)) { 
+           endPointReached = true
+           break
+        }
+      }  
+    }
+  }
+  return endPointReached 
+}  
+
+const findShortestPath = () => {
+ 
+   let carryOn = true
+   let currentPoint = {value: DATA[stopPoint.y][stopPoint.x].value,
+                       x:     stopPoint.x, 
+                       y:     stopPoint.y }
+   let shortPath = [currentPoint]
+   while (carryOn) {
+      let {x, y} = currentPoint
+      let possibleMoves = []
+      for( var aPath of paths) {
+    
+        const { direction,xOffset, yOffset } = aPath
+        const newY = y+yOffset 
+        const newX = x+xOffset
+        if ( newY >= 0 && newY < rows && 
+             newX >= 0 && newX < cols && 
+           DATA[newY][newX].value !== BLOCKED &&
+           DATA[newY][newX].value !== -1) {
+             possibleMoves.push({value: DATA[newY][newX].value,
+                                 x:     newX, 
+                                 y:     newY})
+                             
+    
+            if (startPoint.isSame(newX,newY)) { 
+              carryOn = false
+              //Make possibleMoves contain only this item, as 
+              //found start
+              possibleMoves =[{value: DATA[newY][newX].value,
+                               x:     newX, 
+                               y:     newY}]
+              break
+            }
+         }
+
+       }
+       DATA[y][x].value = -1
+       //sort on value. 
+       possibleMoves.sort((a, b) => a.value - b.value)
+       shortPath.push(possibleMoves[0]) 
+       currentPoint = possibleMoves[0]
+ }
+
+ return shortPath
+ 
+}
+
+const showShortestpath = (shortPath) => {
+ var containerDiv = document.getElementById("resgrid");
+ var items = containerDiv.children
+ var temp = shortPath.shift()
+ //We searched from the end to the start
+ //So front of shortPath is the stopPoint
+ //end of the shortPath is startPoint
+
+ items[temp.y*cols+temp.x].classList.remove("set-green")
+ items[temp.y*cols+temp.x].classList.add("set-red")
+ 
+ temp = shortPath.pop()
+ items[temp.y*cols+temp.x].classList.remove(
+          ...getSetClasses(items[temp.y*cols+temp.x].classList.values()))
+ items[temp.y*cols+temp.x].classList.add("set-yellow")
+ 
+ blockedPoints.forEach(item => {
+   items[item.y*cols+item.x].classList.remove(
+            ...getSetClasses(items[item.y*cols+item.x].classList.values()))
+   items[item.y*cols+item.x].classList.add("set-black")
+ }) 
+
+ shortPath.forEach(item => {
+   items[item.y*cols+item.x].classList.remove(
+             ...getSetClasses(items[item.y*cols+item.x].classList.values()))
+ }) 
+}
+const showNumbersAssignedToCells = () => {
+   let theReturn = [] 
+   DATA.map( (aRow, rowNum) =>  
+         aRow.map((cell, colNum) => {
+           const {value, borders} = cell
+           //console.log(present)
+          theReturn.push(`<div class="grid-bigtext set-green">${value}</div>`)
+      
+    }) ) 
+    return theReturn.join("") 
+ 
+  
+}
+
+const boxLayOut = (rows, cols) => {
+  let theReturn = []
+  const grid = Array(rows).fill().map(() => Array(cols).fill(0))
+  grid.map( (aRow, rowNum) =>  
+    aRow.map((cell, colNum) => {
+      theReturn.push(`<div data-x=${colNum} data-y=${rowNum} 
+            class="grid-item  set-green"></div>`)
+  }) ) 
+  return theReturn.join("")
+}
+
+const startHandler = (e) => {
+  //Placing mouse in cell. Click and hold mouse down and try drag cell
+  //results in the grid collapsing. This if statement is to fix this problem
+  //No text
+  if (e.target.innerHTML.length === 0) {
+    const x =  parseInt(e.target.dataset.x)
+    const y =  parseInt(e.target.dataset.y)
+    if (stopPoint.isDifferent(x,y)) {
+      markNewStartPoint(x,y,e)
+      resultsUpdateRequired() 
+    }
+    
+  }
+}
+
+
+const markNewStartPoint = (x,y,e) => {
+    var containerDiv = document.getElementById("grid");
+    var items = containerDiv.children
+    setColour(items[startPoint.y*cols+startPoint.x],"set-green")
+    startPoint = new Point(x,y)
+    setColour(e.target,"set-yellow")
+}
+
+
+const resultsUpdateRequired = () => {
+   var containerDiv = document.getElementById("resgrid");
+   while (containerDiv.firstChild) {
+      containerDiv.removeChild(containerDiv.firstChild)
+    }
+   if (assignNumberToCells()) {
+    containerDiv.insertAdjacentHTML("beforeend", showNumbersAssignedToCells())
+    showShortestpath(findShortestPath()) 
+   } else {
+      containerDiv.insertAdjacentHTML("beforeend", 
+              ["<p>No&nbsp;path&nbsp;found</p>"])
+   }
+}
+
+const blockHandler = (e) => {
+  //console.log("BLOCK")
+  var containerDiv = document.getElementById("grid");
+  var items = containerDiv.children
+  
+  //Placing mouse in cell. Click and hold mouse down and try drag cell
+  //results in the grid collapsing. This if statement is to fix this problem
+  if (e.target.innerHTML.length === 0) {
+    const x =  parseInt(e.target.dataset.x)
+    const y =  parseInt(e.target.dataset.y)
+    //console.log("block")
+    if (stopPoint.isDifferent(x,y) && startPoint.isDifferent(x,y)) {
+      
+      var index = blockedPoints.findIndex( point => {
+         return point.isSame(x,y)
+      })
+      if (index  !== -1) {
+         //An existing blocked cell
+         blockedPoints.splice(index, 1);
+         setColour(e.target,"set-green")
+      }
+      else {
+        setColour(e.target,"set-black")
+        blockedPoints.push( new Point(x,y))
+      }
+      resultsUpdateRequired()
+    }
+    
+  }
+  //console.log(blockedPoints)
+}
+
+
+
+const stopHandler = (e) => {
+  //Placing mouse in cell. Click and hold mouse down and try drag cell
+  //results in the grid collapsing. This if statement is to fix this problem
+  if (e.target.innerHTML.length === 0) {
+    const x =  parseInt(e.target.dataset.x)
+    const y =  parseInt(e.target.dataset.y)
+    if (startPoint.isDifferent(x,y)) {
+       markNewStopPoint(x,y,e)
+       resultsUpdateRequired()
+    } 
+  }
+  
+}
+
+const markNewStopPoint = (x,y,e) => {
+    var containerDiv = document.getElementById("grid");
+    var items = containerDiv.children
+    //setGreen(items[stopPoint.y*cols+stopPoint.x],"1") 
+    setColour(items[stopPoint.y*cols+stopPoint.x],"set-green")
+    stopPoint = new Point(x,y)
+    //setRed(e.target,"1") 
+    setColour(e.target,"set-red")
+}
+
+const addStartHandler = () => {
+     gridId.addEventListener('click', startHandler, false);
+     
+}
+
+const removeStartHandler = () => {
+     gridId.removeEventListener('click', startHandler, false);
+}
+
+const addStopHandler = () => {
+     gridId.addEventListener('click', stopHandler, false);
+     
+}
+
+const removeStopHandler = () => {
+     gridId.removeEventListener('click', stopHandler, false);
+}
+
+const addBlockHandler = () => {
+     gridId.addEventListener('click', blockHandler, false);
+     
+}
+
+const removeBlockHandler = () => {
+     gridId.removeEventListener('click', blockHandler, false);
+}
+
+
+const getSetClasses = (listIterator) => {
+  let setClasses = []
+   for(var value of listIterator) {
+     if (value.substring(0,3) === "set") {
+       setClasses.push(value)
+     }
+     
+   }
+   return setClasses
+
+}
+
+const setColour = (element, newColour) => {
+  element.classList.remove(...getSetClasses(element.classList.values()))
+  element.classList.add(newColour)
+}
+
+
+const start = { removeStopHandler,
+                removeBlockHandler, 
+                addStartHandler
+              }
+              
+const stop = { removeStartHandler,
+               removeBlockHandler, 
+               addStopHandler
+              }
+const block = { removeStartHandler,
+                removeStopHandler, 
+                addBlockHandler
+              }
+
+window.onload = () => {
+  //carve_passages_from(0,0)
+  
+  //Worked out the maze, now draw it.
+  gridId = document.getElementById("grid");
+  gridId.insertAdjacentHTML("beforeend", boxLayOut(rows, cols));
+  
+  var gridItems = gridId.children
+  gridItems[startPoint.y*cols+startPoint.x].classList.remove("set-green")
+  gridItems[startPoint.y*cols+startPoint.x].classList.add("set-yellow")
+
+  gridItems[stopPoint.y*cols+stopPoint.x].classList.remove("set-green")
+  gridItems[stopPoint.y*cols+stopPoint.x].classList.add("set-red")
+
+
+  resGridId = document.getElementById("resgrid");
+  
+  resultsUpdateRequired()
+
+  currentActions = start
+  
+  executeActions()
+
+
+}
+</script>
+
+
+<body>
+  <div class="box set-yellow"></div>
+  <input type="radio" onClick="radioClick(START)"  
+         name="stopstart" value="start" checked>
+  <label for="start">Start</label>
+
+  <div class="box set-red"></div>
+  <input type="radio"  onClick="radioClick(STOP)" 
+         name="stopstart" value="stop">
+  <label for="stop">Stop</label>
+
+  <div class="box set-black"></div>
+  <input type="radio"  onClick="radioClick(BLOCK)" 
+         name="stopstart" value="block">
+  <label for="block">Block</label><br>
+
+  <div id="grid"></div>
+  <p> </p>
+  <div id="resgrid"></div>
+</body>
+</html>
