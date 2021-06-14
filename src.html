@@ -306,6 +306,7 @@ const markNewStartPoint = (x,y,e) => {
     var items = containerDiv.children
     setColour(items[startPoint.y*cols+startPoint.x],"set-green")
     startPoint = new Point(x,y)
+    removeAnyBlocksOnCell(x,y)
     setColour(e.target,"set-yellow")
 }
 
@@ -324,6 +325,23 @@ const resultsUpdateRequired = () => {
    }
 }
 
+const isBlockedAlready = (x,y) => {
+  
+    var index = blockedPoints.findIndex( point => {
+         return point.isSame(x,y)
+    })
+    return index
+}
+
+const removeAnyBlocksOnCell = (x,y) => {
+  var index = isBlockedAlready(x,y)
+  if (index !== -1) {
+    //An existing blocked cell
+    blockedPoints.splice(index, 1);
+    setColour(e.target,"set-green")
+  }
+  
+}
 const blockHandler = (e) => {
   //console.log("BLOCK")
   var containerDiv = document.getElementById("grid");
@@ -336,11 +354,8 @@ const blockHandler = (e) => {
     const y =  parseInt(e.target.dataset.y)
     //console.log("block")
     if (stopPoint.isDifferent(x,y) && startPoint.isDifferent(x,y)) {
-      
-      var index = blockedPoints.findIndex( point => {
-         return point.isSame(x,y)
-      })
-      if (index  !== -1) {
+      var index = isBlockedAlready(x,y)
+      if ( index !== -1) {
          //An existing blocked cell
          blockedPoints.splice(index, 1);
          setColour(e.target,"set-green")
@@ -378,6 +393,7 @@ const markNewStopPoint = (x,y,e) => {
     //setGreen(items[stopPoint.y*cols+stopPoint.x],"1") 
     setColour(items[stopPoint.y*cols+stopPoint.x],"set-green")
     stopPoint = new Point(x,y)
+    removeAnyBlocksOnCell(x,y)
     //setRed(e.target,"1") 
     setColour(e.target,"set-red")
 }
